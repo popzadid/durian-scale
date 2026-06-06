@@ -11,9 +11,10 @@ let state = {
   time: '',
   grades: [...DEFAULT_GRADES],
   activeGrade: 'AB',
-  entries: {},                   // { grade: [{ w:number, time:'HH:MM' }] }
+  entries: {},                   // { grade: [{ w:number, time:'HH:MM', seq:number }] }
   prices: {},                    // { grade: number }
-  expenses: []                   // [{ name:'', amount:number }]
+  expenses: [],                  // [{ name:'', amount:number }]
+  seq: 0                         // ลำดับการกรอก (ใช้แสดงรายการล่าสุด)
 };
 
 /* ---------- helpers ---------- */
@@ -43,9 +44,53 @@ function renderAll(){
   renderGradePicker();
   renderActiveGrade();
   renderGradeTables();
+  renderRecent();
   renderPrices();
   renderExpenses();
   renderSummary();
+}
+
+// รวมรายการที่กรอกล่าสุด (ทุกเกรด) เรียงใหม่ไปเก่า
+function recentEntries(n){
+  const all = [];
+  state.grades.forEach(g => (state.entries[g]||[]).forEach(e => all.push({ grade:g, w:e.w, time:e.time, seq:e.seq||0 })));
+  all.sort((a,b) => (b.seq||0) - (a.seq||0));
+  return all.slice(0, n||6);
+}
+
+function renderRecent(){
+  const card = $('#recentCard'), list = $('#recentList');
+  const items = recentEntries(6);
+  if (!items.length){ card.hidden = true; list.innerHTML = ''; return; }
+  card.hidden = false;
+  list.innerHTML = items.map((e,i) => `<div class="recent-item ${i===0?'latest':''}">
+    <span class="ri-grade">${escapeHtml(e.grade)}</span>
+    <span class="ri-w">${fmt(num(e.w))} กก.</span>
+    ${i===0 ? '<span class="ri-badge">ล่าสุด</span>' : ''}
+    <span class="ri-time">${e.time||''}</span>
+    <button class="del-row" data-del-seq="${e.seq}" title="ลบรายการนี้">✕</button>
+  </div>`).join('');
+}
+
+function deleteEntryBySeq(seq){
+  for (const g of state.grades){
+    const arr = state.entries[g] || [];
+    const idx = arr.findIndex(e => (e.seq||0) === seq);
+    if (idx > -1){ arr.splice(idx,1); break; }
+  }
+  renderGradePicker(); renderGradeTables(); renderRecent(); renderPrices(); renderSummary();
+  saveDraft();
+}
+
+// จำกัดไม่เกิน 3 หลัก (ทศนิยมได้ไม่เกิน 2 ตำแหน่ง)
+function sanitizeWeight(v){
+  v = String(v).replace(/[^\d.]/g, '');
+  const dot = v.indexOf('.');
+  if (dot > -1) v = v.slice(0, dot+1) + v.slice(dot+1).replace(/\./g, '');
+  const parts = v.split('.');
+  const intp = parts[0].slice(0, 3);
+  const dec = parts.length > 1 ? '.' + parts[1].slice(0, 2) : '';
+  return intp + dec;
 }
 
 function renderGradePicker(){
@@ -151,11 +196,13 @@ function addWeight(){
   if (w <= 0){ toast('กรอกน้ำหนักก่อน'); inp.focus(); return; }
   const g = state.activeGrade;
   ensureGrade(g);
-  state.entries[g].push({ w, time: nowTime() });
+  state.seq = (state.seq || 0) + 1;
+  state.entries[g].push({ w, time: nowTime(), seq: state.seq });
   inp.value = '';
   inp.focus();
   renderGradePicker();
   renderGradeTables();
+  renderRecent();
   renderPrices();
   renderSummary();
   saveDraft();
@@ -165,6 +212,7 @@ function deleteEntry(g, idx){
   if (state.entries[g]) state.entries[g].splice(idx,1);
   renderGradePicker();
   renderGradeTables();
+  renderRecent();
   renderPrices();
   renderSummary();
   saveDraft();
@@ -473,6 +521,16 @@ function init(){
   // weight
   $('#addWeightBtn').addEventListener('click', addWeight);
   $('#weightInput').addEventListener('keydown', e=>{ if (e.key==='Enter') addWeight(); });
+  $('#weightInput').addEventListener('input', e=>{
+    const s = sanitizeWeight(e.target.value);
+    if (s !== e.target.value) e.target.value = s;   // จำกัด 3 หลัก
+  });
+
+  // ลบรายการจากช่องแสดงผลล่าสุด
+  $('#recentList').addEventListener('click', e=>{
+    const d = e.target.closest('[data-del-seq]');
+    if (d) deleteEntryBySeq(+d.dataset.delSeq);
+  });
 
   // grade tables delete
   $('#gradeTables').addEventListener('click', e=>{

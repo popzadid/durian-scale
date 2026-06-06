@@ -55,14 +55,22 @@
       </div>
     </section>
 
-    <!-- STEP 2: กรอกน้ำหนัก ช่องใหญ่ -->
+    <!-- STEP 2: กรอกน้ำหนัก ช่องใหญ่ + ปุ่มด้านข้าง -->
     <section class="card weigh-card">
       <div class="step-title"><span class="step-no">2</span> กรอกน้ำหนัก เกรด <span id="activeGradeName" class="active-grade">-</span></div>
-      <div class="big-input-row">
-        <input id="weightInput" class="big-input" inputmode="decimal" placeholder="0" />
-        <span class="unit">กก.</span>
+      <div class="weigh-row">
+        <div class="big-input-wrap">
+          <input id="weightInput" class="big-input" inputmode="decimal" maxlength="6" placeholder="0" />
+          <span class="unit">กก.</span>
+        </div>
+        <button id="addWeightBtn" class="btn btn-primary add-weight-btn">➕<br>เพิ่ม</button>
       </div>
-      <button id="addWeightBtn" class="btn btn-primary btn-big">➕ เพิ่มน้ำหนัก</button>
+    </section>
+
+    <!-- ช่องแสดงผลล่าสุดที่กรอก (recheck) -->
+    <section class="card recent-card" id="recentCard" hidden>
+      <div class="recent-title">✓ ล่าสุดที่กรอก — ตรวจทานความถูกต้อง</div>
+      <div id="recentList" class="recent-list"></div>
     </section>
 
     <!-- STEP 3: ตารางแยกตามเกรด -->

@@ -1,5 +1,5 @@
 /* Service Worker — offline cache สำหรับ PWA จดตาชั่งทุเรียน */
-const CACHE = 'durian-scale-v7';
+const CACHE = 'durian-scale-v8';
 const ASSETS = [
   './',
   './index.html',

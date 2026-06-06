@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#2e7d32" />
+  <title>จดตาชั่งทุเรียน</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ตาชั่งทุเรียน" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>🌿 จดตาชั่งทุเรียน</h1>
+    <button id="installBtn" class="install-btn" hidden>ติดตั้งแอป</button>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="record">บันทึก</button>
+    <button class="tab" data-tab="history">ประวัติ <span id="historyCount" class="badge"></span></button>
+  </nav>
+
+  <!-- ===== หน้าบันทึก ===== -->
+  <main id="tab-record" class="tab-panel active">
+    <section class="card session-info">
+      <div class="field">
+        <label for="orchard">สวนที่ตัด</label>
+        <input id="orchard" type="text" placeholder="เช่น สวนลุงสมชาย แปลง 2" autocomplete="off" />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="sessionDate">วันที่</label>
+          <input id="sessionDate" type="date" />
+        </div>
+        <div class="field">
+          <label for="sessionTime">เวลา</label>
+          <input id="sessionTime" type="time" />
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 1: เลือกเกรด -->
+    <section class="card">
+      <div class="step-title"><span class="step-no">1</span> เลือกเกรด</div>
+      <div id="gradePicker" class="grade-picker"></div>
+      <button id="addGradeBtn" class="chip-add">+ เพิ่มเกรด</button>
+      <div id="addGradeForm" class="add-grade-form" hidden>
+        <input id="newGradeInput" type="text" placeholder="ชื่อเกรดใหม่ เช่น พรีเมียม, กิ่ง" autocomplete="off" />
+        <button id="confirmGradeBtn" class="btn btn-primary btn-sm">เพิ่ม</button>
+        <button id="cancelGradeBtn" class="btn btn-ghost btn-sm">ยกเลิก</button>
+      </div>
+    </section>
+
+    <!-- STEP 2: กรอกน้ำหนัก ช่องใหญ่ -->
+    <section class="card weigh-card">
+      <div class="step-title"><span class="step-no">2</span> กรอกน้ำหนัก เกรด <span id="activeGradeName" class="active-grade">-</span></div>
+      <div class="big-input-row">
+        <input id="weightInput" class="big-input" inputmode="decimal" placeholder="0" />
+        <span class="unit">กก.</span>
+      </div>
+      <button id="addWeightBtn" class="btn btn-primary btn-big">➕ เพิ่มน้ำหนัก</button>
+    </section>
+
+    <!-- STEP 3: ตารางแยกตามเกรด -->
+    <section class="card">
+      <div class="step-title"><span class="step-no">3</span> รายการชั่ง (แยกตามเกรด)</div>
+      <div id="gradeTables"></div>
+    </section>
+
+    <!-- STEP 4: สรุปราคา -->
+    <section class="card">
+      <div class="step-title"><span class="step-no">4</span> สรุปราคา</div>
+      <div class="table-wrap">
+        <table class="price-table">
+          <thead>
+            <tr><th>เกรด</th><th>น้ำหนัก (กก.)</th><th>ราคา/กก.</th><th>เป็นเงิน</th></tr>
+          </thead>
+          <tbody id="priceBody"></tbody>
+          <tfoot>
+            <tr><td colspan="3" class="r">รวมเป็นเงิน</td><td id="revenueTotal">0</td></tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <!-- STEP 5: ค่าใช้จ่าย -->
+    <section class="card">
+      <div class="step-title"><span class="step-no">5</span> หักค่าใช้จ่าย</div>
+      <div id="expenseList" class="expense-list"></div>
+      <button id="addExpenseBtn" class="chip-add">+ เพิ่มค่าใช้จ่าย</button>
+    </section>
+
+    <!-- สรุปสุทธิ -->
+    <section class="card summary-card">
+      <div class="sum-line"><span>รวมเป็นเงิน</span><span id="sumRevenue">0 ฿</span></div>
+      <div class="sum-line minus"><span>หักค่าใช้จ่าย</span><span id="sumExpense">0 ฿</span></div>
+      <div class="sum-line net"><span>คงเหลือสุทธิ</span><span id="sumNet">0 ฿</span></div>
+    </section>
+
+    <div class="action-bar">
+      <button id="clearBtn" class="btn btn-ghost">ล้าง</button>
+      <button id="saveBtn" class="btn btn-primary">บันทึก</button>
+    </div>
+  </main>
+
+  <!-- ===== หน้าประวัติ ===== -->
+  <main id="tab-history" class="tab-panel">
+    <section class="card">
+      <div class="history-toolbar">
+        <h2>ประวัติการชั่ง</h2>
+        <button id="exportBtn" class="btn btn-ghost btn-sm">ส่งออก CSV</button>
+      </div>
+      <div id="historyView" class="seg">
+        <button class="seg-btn active" data-view="list">รายการ</button>
+        <button class="seg-btn" data-view="day">รายวัน</button>
+        <button class="seg-btn" data-view="orchard">รายสวน</button>
+      </div>
+      <div id="grandSummary" class="grand-summary"></div>
+      <div id="historyList" class="history-list"></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

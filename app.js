@@ -1,0 +1,552 @@
+/* ===== จดตาชั่งทุเรียน — flow: เลือกเกรด > กรอกน้ำหนัก > ตารางแยกเกรด > ราคา > ค่าใช้จ่าย ===== */
+
+const GROUP_SIZE = 5;            // ครบ 5 แถวต่อเกรด = สรุปย่อย 1 ครั้ง
+const DEFAULT_GRADES = ['AB', 'C', 'ตกไซส์', 'อื่นๆ'];
+const STORE_KEY = 'durian_records';
+const DRAFT_KEY = 'durian_draft';
+
+let state = {
+  orchard: '',
+  date: '',
+  time: '',
+  grades: [...DEFAULT_GRADES],
+  activeGrade: 'AB',
+  entries: {},                   // { grade: [{ w:number, time:'HH:MM' }] }
+  prices: {},                    // { grade: number }
+  expenses: []                   // [{ name:'', amount:number }]
+};
+
+/* ---------- helpers ---------- */
+const $  = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+const fmt = (n) => !n ? '0' : Number(n.toFixed(2)).toLocaleString('th-TH');
+const baht = (n) => fmt(n) + ' ฿';
+function nowTime(){ const d=new Date(); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+function nowDate(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(t._t); t._t=setTimeout(()=>t.hidden=true,2200); }
+
+/* ---------- ensure structures exist ---------- */
+function ensureGrade(g){
+  if (!state.entries[g]) state.entries[g] = [];
+  if (!(g in state.prices)) state.prices[g] = '';
+}
+function gradeWeight(g){ return (state.entries[g]||[]).reduce((a,e)=>a+num(e.w),0); }
+function gradeMoney(g){ return gradeWeight(g) * num(state.prices[g]); }
+function revenue(){ return state.grades.reduce((a,g)=>a+gradeMoney(g),0); }
+function expenseTotal(){ return state.expenses.reduce((a,e)=>a+num(e.amount),0); }
+function netTotal(){ return revenue() - expenseTotal(); }
+
+/* ===================== RENDER ===================== */
+function renderAll(){
+  renderGradePicker();
+  renderActiveGrade();
+  renderGradeTables();
+  renderPrices();
+  renderExpenses();
+  renderSummary();
+}
+
+function renderGradePicker(){
+  const wrap = $('#gradePicker');
+  wrap.innerHTML = state.grades.map(g => {
+    const cnt = (state.entries[g]||[]).length;
+    const w = gradeWeight(g);
+    return `<button class="grade-btn ${g===state.activeGrade?'active':''}" data-grade="${escapeHtml(g)}">
+      ${state.grades.length>1?`<span class="rm-grade" data-rmgrade="${escapeHtml(g)}" title="ลบเกรด">✕</span>`:''}
+      ${escapeHtml(g)}
+      <span class="count">${cnt? `${cnt} ครั้ง · ${fmt(w)} กก.` : 'ยังไม่มี'}</span>
+    </button>`;
+  }).join('');
+}
+
+function renderActiveGrade(){ $('#activeGradeName').textContent = state.activeGrade || '-'; }
+
+function renderGradeTables(){
+  const wrap = $('#gradeTables');
+  const gradesWithData = state.grades.filter(g => (state.entries[g]||[]).length > 0);
+  if (gradesWithData.length === 0){
+    wrap.innerHTML = `<div class="empty-block">ยังไม่มีรายการ — เลือกเกรดแล้วกรอกน้ำหนักด้านบน</div>`;
+    return;
+  }
+  wrap.innerHTML = gradesWithData.map(g => {
+    const list = state.entries[g];
+    let rows = '';
+    let block = [];
+    list.forEach((e,i) => {
+      rows += `<tr>
+        <td class="idx">${i+1}</td>
+        <td class="w">${fmt(num(e.w))}</td>
+        <td class="tm">${e.time||''}</td>
+        <td class="act"><button class="del-row" data-del-grade="${escapeHtml(g)}" data-del-idx="${i}">✕</button></td>
+      </tr>`;
+      block.push(e);
+      if ((i+1)%GROUP_SIZE===0){
+        const sub = block.reduce((a,x)=>a+num(x.w),0);
+        rows += `<tr class="sub"><td class="idx">ชุด ${(i+1)/GROUP_SIZE}</td><td colspan="3">${fmt(sub)} กก.</td></tr>`;
+        block = [];
+      }
+    });
+    return `<div class="grade-block">
+      <div class="grade-block-head"><span>${escapeHtml(g)}</span><span class="gb-total">รวม ${fmt(gradeWeight(g))} กก.</span></div>
+      <table class="gb-table">
+        <thead><tr><th class="idx">#</th><th>น้ำหนัก (กก.)</th><th class="tm">เวลา</th><th class="act"></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+}
+
+function renderPrices(){
+  const body = $('#priceBody');
+  const gradesWithData = state.grades.filter(g => gradeWeight(g) > 0);
+  if (gradesWithData.length === 0){
+    body.innerHTML = `<tr><td colspan="4" class="empty-block">ยังไม่มีน้ำหนัก</td></tr>`;
+  } else {
+    body.innerHTML = gradesWithData.map(g => `<tr>
+      <td class="gname">${escapeHtml(g)}</td>
+      <td>${fmt(gradeWeight(g))}</td>
+      <td><input class="price" inputmode="decimal" data-price="${escapeHtml(g)}" value="${state.prices[g] ?? ''}" placeholder="0" /></td>
+      <td class="money">${baht(gradeMoney(g))}</td>
+    </tr>`).join('');
+  }
+  $('#revenueTotal').textContent = baht(revenue());
+}
+
+function renderExpenses(){
+  const wrap = $('#expenseList');
+  if (state.expenses.length === 0){
+    wrap.innerHTML = `<div class="empty-block">ยังไม่มีค่าใช้จ่าย</div>`;
+    return;
+  }
+  wrap.innerHTML = state.expenses.map((e,i) => `<div class="expense-row">
+    <input type="text" class="exp-name" data-exp-name="${i}" value="${escapeHtml(e.name||'')}" placeholder="เช่น ค่าแรง, ค่ารถ, ค่าตัด" autocomplete="off" />
+    <div class="exp-amt-wrap">
+      <input type="text" class="exp-amt" inputmode="decimal" data-exp-amt="${i}" value="${e.amount ?? ''}" placeholder="0" />
+      <span class="exp-unit">฿</span>
+    </div>
+    <button class="del-row" data-del-exp="${i}">✕</button>
+  </div>`).join('');
+}
+
+function renderSummary(){
+  $('#sumRevenue').textContent = baht(revenue());
+  $('#sumExpense').textContent = '- ' + baht(expenseTotal());
+  $('#sumNet').textContent = baht(netTotal());
+}
+
+/* ===================== ACTIONS ===================== */
+function selectGrade(g){
+  state.activeGrade = g;
+  ensureGrade(g);
+  renderGradePicker();
+  renderActiveGrade();
+  $('#weightInput').focus();
+}
+
+function addWeight(){
+  const inp = $('#weightInput');
+  const w = num(inp.value);
+  if (w <= 0){ toast('กรอกน้ำหนักก่อน'); inp.focus(); return; }
+  const g = state.activeGrade;
+  ensureGrade(g);
+  state.entries[g].push({ w, time: nowTime() });
+  inp.value = '';
+  inp.focus();
+  renderGradePicker();
+  renderGradeTables();
+  renderPrices();
+  renderSummary();
+  saveDraft();
+}
+
+function deleteEntry(g, idx){
+  if (state.entries[g]) state.entries[g].splice(idx,1);
+  renderGradePicker();
+  renderGradeTables();
+  renderPrices();
+  renderSummary();
+  saveDraft();
+}
+
+function openAddGrade(){
+  $('#addGradeBtn').hidden = true;
+  $('#addGradeForm').hidden = false;
+  const i = $('#newGradeInput'); i.value = ''; i.focus();
+}
+function cancelAddGrade(){
+  $('#addGradeForm').hidden = true;
+  $('#addGradeBtn').hidden = false;
+}
+function confirmAddGrade(){
+  const i = $('#newGradeInput');
+  const g = i.value.trim();
+  if (!g){ i.focus(); return; }
+  if (state.grades.includes(g)){ toast('มีเกรดนี้แล้ว'); i.select(); return; }
+  state.grades.push(g);
+  ensureGrade(g);
+  state.activeGrade = g;
+  cancelAddGrade();
+  renderAll();
+  saveDraft();
+  toast('เพิ่มเกรด "' + g + '" แล้ว');
+}
+
+function removeGrade(g){
+  const has = (state.entries[g]||[]).length;
+  if (!confirm(`ลบเกรด "${g}"${has?` (มี ${has} รายการ)`:''} ?`)) return;
+  state.grades = state.grades.filter(x => x !== g);
+  delete state.entries[g];
+  delete state.prices[g];
+  if (state.activeGrade === g) state.activeGrade = state.grades[0] || '';
+  renderAll();
+  saveDraft();
+}
+
+function addExpense(){
+  state.expenses.push({ name:'', amount:'' });
+  renderExpenses();
+  saveDraft();
+  const inputs = $$('input.exp-name');
+  if (inputs.length) inputs[inputs.length-1].focus();
+}
+
+function clearSession(silent){
+  if (!silent && !confirm('ล้างข้อมูลทั้งหมด?')) return;
+  state.entries = {};
+  state.prices = {};
+  state.expenses = [];
+  state.grades.forEach(ensureGrade);
+  renderAll();
+  saveDraft();
+  if (!silent) toast('ล้างแล้ว');
+}
+
+function saveSession(){
+  syncInputs();
+  const hasData = state.grades.some(g => (state.entries[g]||[]).length>0);
+  if (!hasData){ toast('ยังไม่มีรายการให้บันทึก'); return; }
+  if (!state.orchard && !confirm('ยังไม่ได้กรอกสวนที่ตัด บันทึกต่อหรือไม่?')) return;
+
+  const totals = {}; state.grades.forEach(g => totals[g] = gradeWeight(g));
+  const moneyByGrade = {}; state.grades.forEach(g => moneyByGrade[g] = gradeMoney(g));
+  const rec = {
+    id: Date.now(),
+    savedAt: new Date().toISOString(),
+    orchard: state.orchard || '(ไม่ระบุสวน)',
+    date: state.date, time: state.time,
+    grades: [...state.grades],
+    entries: JSON.parse(JSON.stringify(state.entries)),
+    prices: { ...state.prices },
+    totals, moneyByGrade,
+    expenses: state.expenses.map(e => ({ name:e.name, amount:num(e.amount) })),
+    revenue: revenue(), expenseTotal: expenseTotal(), net: netTotal()
+  };
+  const all = loadRecords();
+  all.unshift(rec);
+  localStorage.setItem(STORE_KEY, JSON.stringify(all));
+  toast('บันทึกเรียบร้อย ✓');
+
+  // เริ่มรอบใหม่
+  state.orchard=''; $('#orchard').value='';
+  resetDateTime();
+  clearSession(true);
+  renderHistory();
+}
+
+/* ---------- input sync ---------- */
+function syncInputs(){
+  state.orchard = $('#orchard').value.trim();
+  state.date = $('#sessionDate').value;
+  state.time = $('#sessionTime').value;
+}
+
+/* ---------- draft ---------- */
+function saveDraft(){ syncInputs(); localStorage.setItem(DRAFT_KEY, JSON.stringify(state)); }
+function loadDraft(){
+  try {
+    const d = JSON.parse(localStorage.getItem(DRAFT_KEY));
+    if (d && Array.isArray(d.grades)){
+      state = { ...state, ...d };
+      if (!state.grades.length) state.grades = [...DEFAULT_GRADES];
+      if (!state.entries) state.entries = {};
+      if (!state.prices) state.prices = {};
+      if (!state.expenses) state.expenses = [];
+      if (!state.activeGrade) state.activeGrade = state.grades[0];
+    }
+  } catch(e){}
+  state.grades.forEach(ensureGrade);
+}
+
+/* ---------- records ---------- */
+function loadRecords(){ try { return JSON.parse(localStorage.getItem(STORE_KEY))||[]; } catch(e){ return []; } }
+function deleteRecord(id){
+  if (!confirm('ลบรายการนี้?')) return;
+  localStorage.setItem(STORE_KEY, JSON.stringify(loadRecords().filter(r=>r.id!==id)));
+  renderHistory(); toast('ลบแล้ว');
+}
+
+let historyMode = 'list';   // 'list' | 'day' | 'orchard'
+
+function recWeight(r){ return Object.values(r.totals||{}).reduce((a,b)=>a+b,0); }
+function fmtThaiDate(d){
+  if (!d) return 'ไม่ระบุวันที่';
+  const [y,m,day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+
+function renderHistory(){
+  const all = loadRecords();
+  $('#historyCount').textContent = all.length || '';
+  const list = $('#historyList');
+  const banner = $('#grandSummary');
+
+  if (!all.length){
+    banner.innerHTML = '';
+    list.innerHTML = `<div class="empty">ยังไม่มีประวัติการชั่ง<br>บันทึกครั้งแรกได้เลย 🌿</div>`;
+    return;
+  }
+
+  // แถบสรุปยอดรวมทั้งหมด (ทุกรายการ)
+  const gWeight = all.reduce((a,r)=>a+recWeight(r),0);
+  const gRevenue = all.reduce((a,r)=>a+(r.revenue||0),0);
+  const gExpense = all.reduce((a,r)=>a+(r.expenseTotal||0),0);
+  const gNet = all.reduce((a,r)=>a+(r.net||0),0);
+  banner.innerHTML = `<div class="gs-banner">
+    <div>
+      <div class="gs-label">ยอดรวมทั้งหมด (${all.length} รายการ)</div>
+      <div class="gs-sub">รวม ${fmt(gWeight)} กก. · ขาย ${baht(gRevenue)} · ค่าใช้จ่าย ${baht(gExpense)}</div>
+    </div>
+    <div class="gs-net">${baht(gNet)}</div>
+  </div>`;
+
+  if (historyMode === 'list') renderHistoryList(all, list);
+  else renderGroupSummary(all, list, historyMode);
+}
+
+function renderHistoryList(all, list){
+  list.innerHTML = all.map(r => {
+    const dt = [r.date, r.time].filter(Boolean).join(' ');
+    const tags = r.grades.filter(g=>(r.totals[g]||0)>0).map(g=>`<span class="tag">${escapeHtml(g)}: ${fmt(r.totals[g]||0)} กก.</span>`).join('');
+    return `<div class="history-item">
+      <div class="hi-top">
+        <div><div class="hi-orchard">${escapeHtml(r.orchard)}</div>
+        <div class="hi-time">${dt||'—'} · รวม ${fmt(recWeight(r))} กก.</div></div>
+        <span class="tag net">สุทธิ ${baht(r.net||0)}</span>
+      </div>
+      <div class="hi-totals">${tags}</div>
+      <div class="hi-actions">
+        <button class="hi-view" data-view="${r.id}">ดูรายละเอียด</button>
+        <button class="hi-del" data-rmrec="${r.id}">ลบ</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderGroupSummary(all, list, mode){
+  // จัดกลุ่มตามวัน หรือ ตามสวน
+  const groups = {};
+  all.forEach(r => {
+    const key = mode === 'day' ? (r.date || '') : (r.orchard || '(ไม่ระบุสวน)');
+    if (!groups[key]) groups[key] = { key, count:0, weight:0, revenue:0, expense:0, net:0, grades:{} };
+    const g = groups[key];
+    g.count++; g.weight += recWeight(r);
+    g.revenue += r.revenue||0; g.expense += r.expenseTotal||0; g.net += r.net||0;
+    (r.grades||[]).forEach(gr => { g.grades[gr] = (g.grades[gr]||0) + (r.totals[gr]||0); });
+  });
+
+  // เรียง: รายวัน = วันที่ล่าสุดก่อน, รายสวน = น้ำหนักมากก่อน
+  let arr = Object.values(groups);
+  if (mode === 'day') arr.sort((a,b)=> (b.key||'').localeCompare(a.key||''));
+  else arr.sort((a,b)=> b.weight - a.weight);
+
+  list.innerHTML = arr.map(g => {
+    const title = mode === 'day' ? fmtThaiDate(g.key) : escapeHtml(g.key);
+    const tags = Object.keys(g.grades).filter(k=>g.grades[k]>0)
+      .map(k=>`<span class="tag">${escapeHtml(k)}: ${fmt(g.grades[k])} กก.</span>`).join('');
+    return `<div class="sum-group">
+      <div class="sg-head">
+        <span class="sg-title">${title}</span>
+        <span class="tag net">สุทธิ ${baht(g.net)}</span>
+      </div>
+      <div class="sg-sub">${g.count} รายการ · รวม ${fmt(g.weight)} กก.</div>
+      <div class="sg-money">
+        <span>ขาย <b>${baht(g.revenue)}</b></span>
+        <span>ค่าใช้จ่าย <b class="neg">- ${baht(g.expense)}</b></span>
+      </div>
+      <div class="hi-totals" style="margin-top:8px">${tags}</div>
+    </div>`;
+  }).join('');
+}
+
+function viewRecord(id){
+  const r = loadRecords().find(x=>x.id===id);
+  if (!r) return;
+  const priceRows = r.grades.filter(g=>(r.totals[g]||0)>0).map(g=>`<tr>
+    <td class="gname">${escapeHtml(g)}</td><td>${fmt(r.totals[g]||0)}</td>
+    <td>${fmt(num(r.prices[g]))}</td><td class="money">${baht(r.moneyByGrade[g]||0)}</td></tr>`).join('');
+  const expRows = (r.expenses||[]).map(e=>`<div class="sum-line minus"><span>${escapeHtml(e.name||'ค่าใช้จ่าย')}</span><span>- ${baht(num(e.amount))}</span></div>`).join('');
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop';
+  backdrop.innerHTML = `<div class="modal">
+    <h3>${escapeHtml(r.orchard)}</h3>
+    <div class="hi-time">${[r.date,r.time].filter(Boolean).join(' ')||'—'}</div>
+    <div class="table-wrap" style="margin-top:12px">
+      <table class="price-table">
+        <thead><tr><th>เกรด</th><th>กก.</th><th>ราคา/กก.</th><th>เป็นเงิน</th></tr></thead>
+        <tbody>${priceRows}</tbody>
+        <tfoot><tr><td colspan="3" class="r">รวมเป็นเงิน</td><td>${baht(r.revenue||0)}</td></tr></tfoot>
+      </table>
+    </div>
+    <div class="m-sum">
+      ${expRows || ''}
+      <div class="sum-line net"><span>คงเหลือสุทธิ</span><span>${baht(r.net||0)}</span></div>
+    </div>
+    <button class="close-modal">ปิด</button>
+  </div>`;
+  backdrop.addEventListener('click', e=>{ if (e.target===backdrop||e.target.classList.contains('close-modal')) backdrop.remove(); });
+  document.body.appendChild(backdrop);
+}
+
+/* ---------- export CSV ---------- */
+function exportCSV(){
+  const all = loadRecords();
+  if (!all.length){ toast('ไม่มีข้อมูลให้ส่งออก'); return; }
+  const lines = [['สวนที่ตัด','วันที่','เวลา','เกรด','น้ำหนัก(กก.)','ราคา/กก.','เป็นเงิน'].join(',')];
+  all.forEach(r=>{
+    r.grades.forEach(g=>{
+      if ((r.totals[g]||0)>0)
+        lines.push([csv(r.orchard),csv(r.date),csv(r.time),csv(g),r.totals[g],num(r.prices[g])||'',r.moneyByGrade[g]||0].join(','));
+    });
+    (r.expenses||[]).forEach(e=> lines.push([csv(r.orchard),'','','ค่าใช้จ่าย: '+csv(e.name),'','',-num(e.amount)].join(',')));
+    lines.push([csv(r.orchard),'','','สุทธิ','','',r.net||0].join(','));
+    lines.push('');
+  });
+  const blob = new Blob(['﻿'+lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=`ตาชั่งทุเรียน_${nowDate()}.csv`; a.click();
+  URL.revokeObjectURL(url);
+  toast('ส่งออก CSV แล้ว');
+}
+function csv(s){ s=String(s??''); return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s; }
+
+/* ---------- date/time ---------- */
+function resetDateTime(){ $('#sessionDate').value=nowDate(); $('#sessionTime').value=nowTime(); }
+
+/* ===================== INIT ===================== */
+function init(){
+  loadDraft();
+  $('#orchard').value = state.orchard || '';
+  $('#sessionDate').value = state.date || nowDate();
+  $('#sessionTime').value = state.time || nowTime();
+  if (!state.activeGrade) state.activeGrade = state.grades[0];
+
+  renderAll();
+  renderHistory();
+
+  // tabs
+  $$('.tab').forEach(t=>t.addEventListener('click',()=>{
+    $$('.tab').forEach(x=>x.classList.remove('active'));
+    $$('.tab-panel').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    $('#tab-'+t.dataset.tab).classList.add('active');
+    if (t.dataset.tab==='history') renderHistory();
+  }));
+
+  // grade picker (select / remove)
+  $('#gradePicker').addEventListener('click', e=>{
+    const rm = e.target.closest('[data-rmgrade]');
+    if (rm){ e.stopPropagation(); removeGrade(rm.dataset.rmgrade); return; }
+    const btn = e.target.closest('[data-grade]');
+    if (btn) selectGrade(btn.dataset.grade);
+  });
+  $('#addGradeBtn').addEventListener('click', openAddGrade);
+  $('#confirmGradeBtn').addEventListener('click', confirmAddGrade);
+  $('#cancelGradeBtn').addEventListener('click', cancelAddGrade);
+  $('#newGradeInput').addEventListener('keydown', e=>{
+    if (e.key==='Enter'){ e.preventDefault(); confirmAddGrade(); }
+    if (e.key==='Escape') cancelAddGrade();
+  });
+
+  // weight
+  $('#addWeightBtn').addEventListener('click', addWeight);
+  $('#weightInput').addEventListener('keydown', e=>{ if (e.key==='Enter') addWeight(); });
+
+  // grade tables delete
+  $('#gradeTables').addEventListener('click', e=>{
+    const d = e.target.closest('[data-del-grade]');
+    if (d) deleteEntry(d.dataset.delGrade, +d.dataset.delIdx);
+  });
+
+  // prices
+  $('#priceBody').addEventListener('input', e=>{
+    const p = e.target.closest('[data-price]');
+    if (p){ state.prices[p.dataset.price] = p.value; renderPriceMoneyLive(); saveDraft(); }
+  });
+
+  // expenses
+  $('#addExpenseBtn').addEventListener('click', addExpense);
+  $('#expenseList').addEventListener('input', e=>{
+    const n = e.target.closest('[data-exp-name]');
+    const a = e.target.closest('[data-exp-amt]');
+    if (n){ state.expenses[+n.dataset.expName].name = n.value; saveDraft(); }
+    if (a){ state.expenses[+a.dataset.expAmt].amount = a.value; renderSummary(); saveDraft(); }
+  });
+  $('#expenseList').addEventListener('click', e=>{
+    const d = e.target.closest('[data-del-exp]');
+    if (d){ state.expenses.splice(+d.dataset.delExp,1); renderExpenses(); renderSummary(); saveDraft(); }
+  });
+
+  // history view toggle (รายการ / รายวัน / รายสวน)
+  $('#historyView').addEventListener('click', e=>{
+    const b = e.target.closest('.seg-btn');
+    if (!b) return;
+    historyMode = b.dataset.view;
+    $$('#historyView .seg-btn').forEach(x=>x.classList.toggle('active', x===b));
+    renderHistory();
+  });
+
+  // history actions (ดูรายละเอียด / ลบ)
+  $('#historyList').addEventListener('click', e=>{
+    const v = e.target.closest('[data-view]');
+    const d = e.target.closest('[data-rmrec]');
+    if (v) viewRecord(+v.dataset.view);
+    if (d) deleteRecord(+d.dataset.rmrec);
+  });
+
+  // session fields
+  ['#orchard','#sessionDate','#sessionTime'].forEach(s=>$(s).addEventListener('change', saveDraft));
+
+  // actions
+  $('#clearBtn').addEventListener('click', ()=>clearSession(false));
+  $('#saveBtn').addEventListener('click', saveSession);
+  $('#exportBtn').addEventListener('click', exportCSV);
+
+  registerSW();
+  setupInstall();
+}
+
+// อัปเดตเงินในตารางราคา + สรุป โดยไม่หลุดโฟกัสช่องราคา
+function renderPriceMoneyLive(){
+  const gradesWithData = state.grades.filter(g => gradeWeight(g) > 0);
+  const moneyCells = $$('#priceBody td.money');
+  gradesWithData.forEach((g,i)=>{ if (moneyCells[i]) moneyCells[i].textContent = baht(gradeMoney(g)); });
+  $('#revenueTotal').textContent = baht(revenue());
+  renderSummary();
+}
+
+/* ---------- PWA ---------- */
+function registerSW(){ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+let deferredPrompt=null;
+function setupInstall(){
+  window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferredPrompt=e; $('#installBtn').hidden=false; });
+  $('#installBtn').addEventListener('click', async ()=>{
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt(); await deferredPrompt.userChoice;
+    deferredPrompt=null; $('#installBtn').hidden=true;
+  });
+}
+
+document.addEventListener('DOMContentLoaded', init);

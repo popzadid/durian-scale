@@ -123,14 +123,17 @@ input:focus { outline: none; border-color: var(--green); }
 
 /* ===== STEP 2 big input ===== */
 .weigh-card { background: linear-gradient(180deg, #fff, var(--green-light)); }
-.big-input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.big-input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; width: 100%; }
 .big-input {
-  flex: 1; font-size: 2.6rem !important; font-weight: 800;
-  text-align: center; padding: 16px !important;
+  flex: 1 1 auto;
+  min-width: 0;            /* ให้ช่องหดอยู่ในการ์ดได้ ไม่ล้นขอบ */
+  width: 100%;
+  font-size: 2.4rem !important; font-weight: 800;
+  text-align: center; padding: 16px 12px !important;
   border: 2px solid var(--green) !important; border-radius: 14px;
   color: var(--green-dark);
 }
-.unit { font-size: 1.3rem; font-weight: 700; color: var(--muted); }
+.unit { flex: 0 0 auto; font-size: 1.3rem; font-weight: 700; color: var(--muted); }
 .btn-big { width: 100%; padding: 18px; font-size: 1.15rem; }
 
 /* ===== STEP 3 grade tables ===== */

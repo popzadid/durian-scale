@@ -540,13 +540,52 @@ function renderPriceMoneyLive(){
 /* ---------- PWA ---------- */
 function registerSW(){ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{}); }
 let deferredPrompt=null;
+function isIos(){ return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1); }
+function isStandalone(){ return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }
+
 function setupInstall(){
-  window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferredPrompt=e; $('#installBtn').hidden=false; });
-  $('#installBtn').addEventListener('click', async ()=>{
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt(); await deferredPrompt.userChoice;
-    deferredPrompt=null; $('#installBtn').hidden=true;
+  const btn = $('#installBtn');
+
+  // Android / Chrome — มี prompt ในตัว
+  window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferredPrompt=e; btn.hidden=false; });
+
+  btn.addEventListener('click', async ()=>{
+    if (deferredPrompt){
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt=null; btn.hidden=true;
+      return;
+    }
+    // iOS หรือเบราว์เซอร์ที่ไม่มี prompt → แสดงวิธีติดตั้งเอง
+    showInstallHelp();
   });
+
+  // iOS ไม่ยิง beforeinstallprompt → โชว์ปุ่มเองถ้ายังไม่ได้ติดตั้ง
+  if (isIos() && !isStandalone()) btn.hidden=false;
+}
+
+function showInstallHelp(){
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop';
+  const ios = isIos();
+  backdrop.innerHTML = `<div class="modal">
+    <h3>📲 ติดตั้งแอปลงเครื่อง</h3>
+    ${ios ? `
+      <ol class="ios-steps">
+        <li>ต้องเปิดด้วย <b>Safari</b> เท่านั้น (Chrome บน iPhone ติดตั้งไม่ได้)</li>
+        <li>กดปุ่ม <b>แชร์</b> <span class="share-ico">⬆️</span> ที่แถบล่าง (หรือมุมขวาบน) ของ Safari</li>
+        <li>เลื่อนลงเลือก <b>“เพิ่มลงในหน้าจอโฮม” (Add to Home Screen)</b></li>
+        <li>กด <b>เพิ่ม / Add</b> มุมขวาบน — จะมีไอคอนแอปบนหน้าจอโฮม</li>
+      </ol>` : `
+      <ol class="ios-steps">
+        <li>กดเมนู <b>⋮</b> ของเบราว์เซอร์</li>
+        <li>เลือก <b>“ติดตั้งแอป” / “Add to Home screen”</b></li>
+      </ol>`}
+    <p class="hint">เมื่อติดตั้งแล้ว เปิดใช้งานได้แบบออฟไลน์ ไม่ต้องเข้าเว็บทุกครั้ง</p>
+    <button class="close-modal">เข้าใจแล้ว</button>
+  </div>`;
+  backdrop.addEventListener('click', e=>{ if(e.target===backdrop||e.target.classList.contains('close-modal')) backdrop.remove(); });
+  document.body.appendChild(backdrop);
 }
 
 document.addEventListener('DOMContentLoaded', init);

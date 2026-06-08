@@ -5,6 +5,10 @@ const DEFAULT_GRADES = ['AB', 'C', 'ตกไซส์', 'อื่นๆ'];
 const STORE_KEY = 'durian_records';
 const DRAFT_KEY = 'durian_draft';
 
+// ===== Cloudflare Web Analytics =====
+// วางโทเคนจาก Cloudflare ตรงนี้ (ปล่อยว่าง = ปิดการเก็บสถิติ)
+const CF_ANALYTICS_TOKEN = 'de80ab71181148279f77da9fb696d1c7';
+
 let state = {
   orchard: '',
   date: '',
@@ -483,6 +487,14 @@ function csv(s){ s=String(s??''); return /[",\n]/.test(s)?`"${s.replace(/"/g,'""
 /* ---------- date/time ---------- */
 function resetDateTime(){ $('#sessionDate').value=nowDate(); $('#sessionTime').value=nowTime(); }
 
+function activateTab(name){
+  $$('.tab').forEach(x=>x.classList.toggle('active', x.dataset.tab===name));
+  $$('.tab-panel').forEach(x=>x.classList.remove('active'));
+  const panel = $('#tab-'+name);
+  if (panel) panel.classList.add('active');
+  if (name==='history') renderHistory();
+}
+
 /* ===================== INIT ===================== */
 function init(){
   loadDraft();
@@ -494,14 +506,15 @@ function init(){
   renderAll();
   renderHistory();
 
-  // tabs
+  // tabs (+ SPA virtual pageview สำหรับ analytics)
   $$('.tab').forEach(t=>t.addEventListener('click',()=>{
-    $$('.tab').forEach(x=>x.classList.remove('active'));
-    $$('.tab-panel').forEach(x=>x.classList.remove('active'));
-    t.classList.add('active');
-    $('#tab-'+t.dataset.tab).classList.add('active');
-    if (t.dataset.tab==='history') renderHistory();
+    activateTab(t.dataset.tab);
+    if (history.pushState) history.pushState(null, '', '#' + t.dataset.tab);
   }));
+  window.addEventListener('popstate', ()=>{
+    const name = (location.hash || '#record').slice(1);
+    if ($('#tab-'+name)) activateTab(name);
+  });
 
   // grade picker (select / remove)
   $('#gradePicker').addEventListener('click', e=>{
@@ -584,6 +597,7 @@ function init(){
 
   registerSW();
   setupInstall();
+  setupAnalytics();
 }
 
 // อัปเดตเงินในตารางราคา + สรุป โดยไม่หลุดโฟกัสช่องราคา
@@ -593,6 +607,16 @@ function renderPriceMoneyLive(){
   gradesWithData.forEach((g,i)=>{ if (moneyCells[i]) moneyCells[i].textContent = baht(gradeMoney(g)); });
   $('#revenueTotal').textContent = baht(revenue());
   renderSummary();
+}
+
+/* ---------- Cloudflare Web Analytics ---------- */
+function setupAnalytics(){
+  if (!CF_ANALYTICS_TOKEN) return;   // ไม่มีโทเคน = ไม่เก็บสถิติ
+  const s = document.createElement('script');
+  s.defer = true;
+  s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', JSON.stringify({ token: CF_ANALYTICS_TOKEN, spa: true }));
+  document.head.appendChild(s);
 }
 
 /* ---------- PWA ---------- */

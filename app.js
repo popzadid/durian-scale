@@ -4,7 +4,7 @@ const GROUP_SIZE = 5;            // ครบ 5 แถวต่อเกรด =
 const DEFAULT_GRADES = ['AB', 'C', 'ตกไซส์', 'อื่นๆ'];
 const STORE_KEY = 'durian_records';
 const DRAFT_KEY = 'durian_draft';
-const APP_VERSION = 'v14';   // fallback ถ้ายังไม่มี service worker ควบคุมหน้า
+const APP_VERSION = 'v15';   // fallback ถ้ายังไม่มี service worker ควบคุมหน้า
 
 // ===== แบนเนอร์โฆษณาร้าน =====
 // แก้ได้ตรงนี้: img = ลิงก์รูป (ถ้ามี), bg = สีพื้น (ถ้าไม่มีรูป), link = ลิงก์ปลายทางเมื่อคลิก
@@ -675,21 +675,20 @@ function applyTheme(){
   document.documentElement.setAttribute('data-theme', t);
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', t === 'dark' ? '#14391a' : '#2e7d32');
-  const btn = $('#themeBtn');
-  if (btn) btn.textContent = themePref === 'auto' ? '🌗' : (themePref === 'dark' ? '🌙' : '☀️');
+  const tg = $('#themeToggle');
+  if (tg) tg.checked = (t === 'dark');   // slider เลื่อนตามธีมปัจจุบัน
 }
 function setupTheme(){
   try { themePref = localStorage.getItem(THEME_KEY) || 'auto'; } catch(e){}
   applyTheme();
-  // ตามระบบเมื่อเลือกโหมด auto
-  const mq = window.matchMedia('(prefers-color-scheme: dark)');
-  mq.addEventListener('change', ()=>{ if (themePref === 'auto') applyTheme(); });
-  const btn = $('#themeBtn');
-  if (btn) btn.addEventListener('click', ()=>{
-    themePref = themePref === 'auto' ? 'light' : themePref === 'light' ? 'dark' : 'auto';
+  // ตามระบบเมื่อยังเป็นโหมด auto (ยังไม่เคยเลื่อนสไลเดอร์เอง)
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{ if (themePref === 'auto') applyTheme(); });
+  const tg = $('#themeToggle');
+  if (tg) tg.addEventListener('change', ()=>{
+    themePref = tg.checked ? 'dark' : 'light';
     try { localStorage.setItem(THEME_KEY, themePref); } catch(e){}
     applyTheme();
-    toast(themePref === 'auto' ? 'ธีม: ตามระบบ' : themePref === 'dark' ? 'ธีม: มืด 🌙' : 'ธีม: สว่าง ☀️');
+    toast(themePref === 'dark' ? 'ธีม: มืด 🌙' : 'ธีม: สว่าง ☀️');
   });
 }
 

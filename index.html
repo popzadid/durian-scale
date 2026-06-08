@@ -30,7 +30,14 @@
          <h1>🖋️ จดแล้วรวย by สุรเดชการเกษตร</h1>
     </div>
     <div class="header-actions">
-      <button id="themeBtn" class="theme-btn" title="สลับธีม" aria-label="สลับธีม">🌗</button>
+      <label class="theme-switch" title="สลับธีม สว่าง/มืด">
+        <input type="checkbox" id="themeToggle" aria-label="สลับธีมมืด" />
+        <span class="ts-track">
+          <span class="ts-ico ts-sun">☀️</span>
+          <span class="ts-ico ts-moon">🌙</span>
+          <span class="ts-thumb"></span>
+        </span>
+      </label>
       <button id="installBtn" class="install-btn" hidden>ติดตั้งแอป</button>
     </div>
   </header>

@@ -1,5 +1,6 @@
 /* Service Worker — offline cache สำหรับ PWA จดตาชั่งทุเรียน */
-const CACHE = 'durian-scale-v11';
+const VERSION = 'v12';
+const CACHE = 'durian-scale-' + VERSION;
 const ASSETS = [
   './',
   './index.html',
@@ -31,6 +32,15 @@ self.addEventListener('activate', (e) => {
       Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
+});
+
+// ตอบเวอร์ชันให้หน้าแอปเมื่อถูกถาม
+self.addEventListener('message', (e) => {
+  if (e.data === 'GET_VERSION') {
+    const reply = { type: 'VERSION', version: VERSION };
+    if (e.ports && e.ports[0]) e.ports[0].postMessage(reply);
+    else if (e.source) e.source.postMessage(reply);
+  }
 });
 
 // cache-first สำหรับไฟล์แอป, network fallback

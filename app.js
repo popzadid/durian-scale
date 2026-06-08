@@ -4,6 +4,7 @@ const GROUP_SIZE = 5;            // ครบ 5 แถวต่อเกรด =
 const DEFAULT_GRADES = ['AB', 'C', 'ตกไซส์', 'อื่นๆ'];
 const STORE_KEY = 'durian_records';
 const DRAFT_KEY = 'durian_draft';
+const APP_VERSION = 'v12';   // fallback ถ้ายังไม่มี service worker ควบคุมหน้า
 
 // ===== Cloudflare Web Analytics =====
 // วางโทเคนจาก Cloudflare ตรงนี้ (ปล่อยว่าง = ปิดการเก็บสถิติ)
@@ -598,6 +599,7 @@ function init(){
   registerSW();
   setupInstall();
   setupAnalytics();
+  showVersion();
 }
 
 // อัปเดตเงินในตารางราคา + สรุป โดยไม่หลุดโฟกัสช่องราคา
@@ -621,6 +623,22 @@ function setupAnalytics(){
 
 /* ---------- PWA ---------- */
 function registerSW(){ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+
+// แสดงเวอร์ชัน service worker ที่กำลังทำงานจริง
+function showVersion(){
+  const el = $('#appFooter');
+  if (!el) return;
+  const set = v => el.textContent = 'เวอร์ชัน ' + v;
+  set(APP_VERSION);                                    // แสดง fallback ไปก่อน
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.ready.then(reg => {
+    const sw = navigator.serviceWorker.controller || reg.active;
+    if (!sw) return;
+    const ch = new MessageChannel();
+    ch.port1.onmessage = e => { if (e.data && e.data.version) set(e.data.version); };
+    sw.postMessage('GET_VERSION', [ch.port2]);
+  }).catch(()=>{});
+}
 let deferredPrompt=null;
 function isIos(){ return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1); }
 function isStandalone(){ return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }

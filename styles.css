@@ -274,6 +274,43 @@ input:focus { outline: none; border-color: var(--green); }
 .hi-view { color: var(--green); }
 .empty { text-align: center; color: var(--muted); padding: 30px 10px; }
 
+/* ===== แบนเนอร์โฆษณา (carousel) ===== */
+.ad-banner { margin-top: 16px; }
+.ad-banner[hidden] { display: none; }
+.ad-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 14px;
+  scrollbar-width: none;
+  box-shadow: var(--shadow);
+}
+.ad-track::-webkit-scrollbar { display: none; }
+.ad-slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  min-height: 120px;
+  border-radius: 14px;
+  display: flex;
+  align-items: flex-end;
+  padding: 16px 18px;
+  color: #fff;
+  text-decoration: none;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  overflow: hidden;
+}
+.ad-slide::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,.45)); }
+.ad-content { position: relative; z-index: 1; }
+.ad-title { font-family: 'Kanit','Sarabun',sans-serif; font-weight: 700; font-size: 1.2rem; line-height: 1.25; }
+.ad-sub { font-size: .85rem; opacity: .95; margin-top: 3px; }
+.ad-tag { position: absolute; top: 10px; left: 12px; z-index: 1; background: rgba(0,0,0,.35); color: #fff; font-size: .65rem; padding: 2px 8px; border-radius: 10px; }
+.ad-dots { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
+.ad-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); cursor: pointer; transition: width .2s, background .2s; }
+.ad-dot.active { background: var(--green); width: 18px; border-radius: 4px; }
+
 /* ===== footer เวอร์ชัน ===== */
 .app-footer {
   text-align: center;

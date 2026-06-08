@@ -4,7 +4,15 @@ const GROUP_SIZE = 5;            // ครบ 5 แถวต่อเกรด =
 const DEFAULT_GRADES = ['AB', 'C', 'ตกไซส์', 'อื่นๆ'];
 const STORE_KEY = 'durian_records';
 const DRAFT_KEY = 'durian_draft';
-const APP_VERSION = 'v12';   // fallback ถ้ายังไม่มี service worker ควบคุมหน้า
+const APP_VERSION = 'v13';   // fallback ถ้ายังไม่มี service worker ควบคุมหน้า
+
+// ===== แบนเนอร์โฆษณาร้าน =====
+// แก้ได้ตรงนี้: img = ลิงก์รูป (ถ้ามี), bg = สีพื้น (ถ้าไม่มีรูป), link = ลิงก์ปลายทางเมื่อคลิก
+const ADS = [
+  { title: 'ร้านสุรเดชการเกษตร (1999)', subtitle: 'ปุ๋ย ยา อุปกรณ์การเกษตร ครบวงจร', bg: 'linear-gradient(135deg,#2e7d32,#1b5e20)', img: '', link: '' },
+  { title: 'โปรโมชั่นปุ๋ยทุเรียน', subtitle: 'ราคาพิเศษช่วงฤดูกาล สอบถามได้เลย', bg: 'linear-gradient(135deg,#f9a825,#ef6c00)', img: '', link: '' },
+  { title: 'สนใจสินค้า ทักหาเราได้', subtitle: 'แอดไลน์ / โทรสอบถามราคา', bg: 'linear-gradient(135deg,#00897b,#00695c)', img: '', link: '' }
+];
 
 // ===== Cloudflare Web Analytics =====
 // วางโทเคนจาก Cloudflare ตรงนี้ (ปล่อยว่าง = ปิดการเก็บสถิติ)
@@ -596,6 +604,8 @@ function init(){
   $('#saveBtn').addEventListener('click', saveSession);
   $('#exportBtn').addEventListener('click', exportCSV);
 
+  renderAds();
+  setupAdCarousel();
   registerSW();
   setupInstall();
   setupAnalytics();
@@ -609,6 +619,46 @@ function renderPriceMoneyLive(){
   gradesWithData.forEach((g,i)=>{ if (moneyCells[i]) moneyCells[i].textContent = baht(gradeMoney(g)); });
   $('#revenueTotal').textContent = baht(revenue());
   renderSummary();
+}
+
+/* ---------- แบนเนอร์โฆษณา (carousel) ---------- */
+function renderAds(){
+  const banner = $('#adBanner'), track = $('#adTrack'), dots = $('#adDots');
+  if (!track) return;
+  if (!ADS.length){ banner.hidden = true; return; }
+  banner.hidden = false;
+  track.innerHTML = ADS.map(a => {
+    const style = a.img ? `background-image:url('${a.img}')` : `background:${a.bg||'var(--green)'}`;
+    const inner = `<span class="ad-tag">โฆษณา</span>
+      <div class="ad-content"><div class="ad-title">${escapeHtml(a.title||'')}</div><div class="ad-sub">${escapeHtml(a.subtitle||'')}</div></div>`;
+    return a.link
+      ? `<a class="ad-slide" href="${a.link}" target="_blank" rel="noopener" style="${style}">${inner}</a>`
+      : `<div class="ad-slide" style="${style}">${inner}</div>`;
+  }).join('');
+  dots.innerHTML = ADS.map((_,i) => `<span class="ad-dot ${i===0?'active':''}" data-i="${i}"></span>`).join('');
+}
+
+let adTimer = null;
+function setupAdCarousel(){
+  const track = $('#adTrack');
+  if (!track || ADS.length < 2) return;          // มีสไลด์เดียวไม่ต้องเลื่อน
+  const dots = $$('#adDots .ad-dot');
+  let idx = 0;
+
+  const syncDots = i => dots.forEach((d,di)=>d.classList.toggle('active', di===i));
+  const goTo = i => { idx = (i+ADS.length)%ADS.length; track.scrollTo({ left: idx*track.clientWidth, behavior:'smooth' }); syncDots(idx); };
+
+  let st;
+  track.addEventListener('scroll', ()=>{
+    clearTimeout(st);
+    st = setTimeout(()=>{ idx = Math.round(track.scrollLeft/track.clientWidth); syncDots(idx); }, 80);
+  });
+  $('#adDots').addEventListener('click', e=>{ const d=e.target.closest('.ad-dot'); if (d){ goTo(+d.dataset.i); restart(); } });
+
+  const restart = ()=>{ clearInterval(adTimer); adTimer = setInterval(()=>goTo(idx+1), 4000); };
+  ['touchstart','mousedown'].forEach(ev=>track.addEventListener(ev, ()=>clearInterval(adTimer)));
+  ['touchend','mouseleave'].forEach(ev=>track.addEventListener(ev, restart));
+  restart();
 }
 
 /* ---------- Cloudflare Web Analytics ---------- */

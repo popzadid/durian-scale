@@ -4,7 +4,7 @@ const GROUP_SIZE = 5;            // ครบ 5 แถวต่อเกรด =
 const DEFAULT_GRADES = ['AB', 'C', 'ตกไซส์', 'อื่นๆ'];
 const STORE_KEY = 'durian_records';
 const DRAFT_KEY = 'durian_draft';
-const APP_VERSION = 'v13';   // fallback ถ้ายังไม่มี service worker ควบคุมหน้า
+const APP_VERSION = 'v14';   // fallback ถ้ายังไม่มี service worker ควบคุมหน้า
 
 // ===== แบนเนอร์โฆษณาร้าน =====
 // แก้ได้ตรงนี้: img = ลิงก์รูป (ถ้ามี), bg = สีพื้น (ถ้าไม่มีรูป), link = ลิงก์ปลายทางเมื่อคลิก
@@ -604,6 +604,7 @@ function init(){
   $('#saveBtn').addEventListener('click', saveSession);
   $('#exportBtn').addEventListener('click', exportCSV);
 
+  setupTheme();
   renderAds();
   setupAdCarousel();
   registerSW();
@@ -659,6 +660,37 @@ function setupAdCarousel(){
   ['touchstart','mousedown'].forEach(ev=>track.addEventListener(ev, ()=>clearInterval(adTimer)));
   ['touchend','mouseleave'].forEach(ev=>track.addEventListener(ev, restart));
   restart();
+}
+
+/* ---------- ธีม สว่าง/มืด ---------- */
+const THEME_KEY = 'durian_theme';
+let themePref = 'auto';   // 'auto' | 'light' | 'dark'
+
+function resolvedTheme(){
+  if (themePref === 'auto') return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return themePref;
+}
+function applyTheme(){
+  const t = resolvedTheme();
+  document.documentElement.setAttribute('data-theme', t);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', t === 'dark' ? '#14391a' : '#2e7d32');
+  const btn = $('#themeBtn');
+  if (btn) btn.textContent = themePref === 'auto' ? '🌗' : (themePref === 'dark' ? '🌙' : '☀️');
+}
+function setupTheme(){
+  try { themePref = localStorage.getItem(THEME_KEY) || 'auto'; } catch(e){}
+  applyTheme();
+  // ตามระบบเมื่อเลือกโหมด auto
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  mq.addEventListener('change', ()=>{ if (themePref === 'auto') applyTheme(); });
+  const btn = $('#themeBtn');
+  if (btn) btn.addEventListener('click', ()=>{
+    themePref = themePref === 'auto' ? 'light' : themePref === 'light' ? 'dark' : 'auto';
+    try { localStorage.setItem(THEME_KEY, themePref); } catch(e){}
+    applyTheme();
+    toast(themePref === 'auto' ? 'ธีม: ตามระบบ' : themePref === 'dark' ? 'ธีม: มืด 🌙' : 'ธีม: สว่าง ☀️');
+  });
 }
 
 /* ---------- Cloudflare Web Analytics ---------- */

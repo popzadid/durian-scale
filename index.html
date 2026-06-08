@@ -13,13 +13,26 @@
   <meta name="apple-mobile-web-app-title" content="ตาชั่งทุเรียน" />
   <link rel="stylesheet" href="fonts.css" />
   <link rel="stylesheet" href="styles.css" />
+  <script>
+    /* ตั้งธีมก่อนวาดหน้า กันจอกระพริบ (อ่านค่าที่เลือก หรือเช็ค OS) */
+    (function(){
+      try{
+        var p = localStorage.getItem('durian_theme') || 'auto';
+        var dark = p==='dark' || (p==='auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+      }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+    })();
+  </script>
 </head>
 <body>
   <header class="app-header">
     <div class="app-title">
-         <h1>🖋️ จดแล้วรวย by ร้านสุรเดชการเกษตร (1999)</h1>
+         <h1>🖋️ จดแล้วรวย by สุรเดชการเกษตร</h1>
     </div>
-    <button id="installBtn" class="install-btn" hidden>ติดตั้งแอป</button>
+    <div class="header-actions">
+      <button id="themeBtn" class="theme-btn" title="สลับธีม" aria-label="สลับธีม">🌗</button>
+      <button id="installBtn" class="install-btn" hidden>ติดตั้งแอป</button>
+    </div>
   </header>
 
   <nav class="tabs">
@@ -66,7 +79,7 @@
           <input id="weightInput" class="big-input" inputmode="decimal" maxlength="6" placeholder="0" />
           <span class="unit">กก.</span>
         </div>
-        <button id="addWeightBtn" class="btn btn-primary add-weight-btn">➕<br>เพิ่ม</button>
+        <button id="addWeightBtn" class="btn btn-primary add-weight-btn">เพิ่ม</button>
       </div>
     </section>
 
@@ -141,7 +154,7 @@
     </section>
   </main>
 
-  <footer class="app-footer" id="appFooter">เวอร์ชัน …</footer>
+  <footer class="app-footer" id="appFooter">Made with ❤️ by สุรเดชการเกษตร PPSoft เวอร์ชัน …  </footer>
 
   <div id="toast" class="toast" hidden></div>
 

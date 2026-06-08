@@ -10,18 +10,38 @@
   --border: #d9e0d9;
   --danger: #c62828;
   --subtotal: #fff8e1;
+  --field-bg: #ffffff;   /* พื้นช่องกรอก/ปุ่ม */
+  --deep: #1b5e20;       /* พื้นเขียวเข้ม (แถบสรุป/footer ตาราง) */
   --radius: 14px;
   --shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+
+/* ===== Dark theme ===== */
+html[data-theme="dark"] {
+  --green: #43a047;
+  --green-dark: #8ed694;   /* ใช้เป็นสีอักษรเน้น ต้องสว่างบนพื้นมืด */
+  --green-light: #21331f;  /* พื้นอ่อน → เขียวเข้ม */
+  --yellow: #ffca28;
+  --bg: #10130f;
+  --card: #1c211b;
+  --text: #e7eee6;
+  --muted: #9aa69a;
+  --border: #374237;
+  --danger: #ef5350;
+  --subtotal: #2c2913;
+  --field-bg: #252c24;
+  --deep: #16401b;
+  --shadow: 0 2px 8px rgba(0,0,0,.4);
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 html {
-  /* บังคับโหมดสว่าง กัน iOS dark mode พลิกสีช่องกรอกจนอ่านไม่ออก */
   color-scheme: light;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
+html[data-theme="dark"] { color-scheme: dark; }
 
 html, body {
   margin: 0; padding: 0;
@@ -54,7 +74,7 @@ input { background-clip: padding-box; }
 body { padding-bottom: calc(env(safe-area-inset-bottom) + 20px); max-width: 720px; margin: 0 auto; }
 
 .app-header {
-  background: linear-gradient(135deg, var(--green), var(--green-dark));
+  background: linear-gradient(135deg, var(--green), var(--deep));
   color: #fff;
   padding: calc(env(safe-area-inset-top) + 14px) 16px 14px;
   display: flex; align-items: center; justify-content: space-between;
@@ -63,10 +83,17 @@ body { padding-bottom: calc(env(safe-area-inset-bottom) + 20px); max-width: 720p
 .app-title { display: flex; flex-direction: column; gap: 1px; }
 .app-header h1 { font-size: 1.15rem; margin: 0; font-weight: 700; line-height: 1.2; }
 .app-brand { font-size: .72rem; font-weight: 500; opacity: .85; font-family: 'Kanit','Sarabun',sans-serif; }
+.header-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 .install-btn {
   background: rgba(255,255,255,.2); color: #fff;
   border: 1px solid rgba(255,255,255,.5); border-radius: 20px;
   padding: 6px 14px; font-size: .85rem; cursor: pointer;
+}
+.theme-btn {
+  background: rgba(255,255,255,.18); color: #fff;
+  border: 1px solid rgba(255,255,255,.45); border-radius: 50%;
+  width: 38px; height: 38px; font-size: 1.1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
 }
 
 .tabs { display: flex; background: var(--card); position: sticky; top: 0; z-index: 15; box-shadow: var(--shadow); }
@@ -89,7 +116,7 @@ label { font-size: .85rem; color: var(--muted); font-weight: 600; }
 
 input[type=text], input[type=date], input[type=time], input[type=number] {
   border: 1.5px solid var(--border); border-radius: 10px; padding: 12px;
-  font-size: 1rem; width: 100%; background: #fff; color: var(--text);
+  font-size: 1rem; width: 100%; background: var(--field-bg); color: var(--text);
 }
 input:focus { outline: none; border-color: var(--green); }
 
@@ -108,7 +135,7 @@ input:focus { outline: none; border-color: var(--green); }
   min-width: 0;
   position: relative;
   border: 2px solid var(--border);
-  background: #fff;
+  background: var(--field-bg);
   color: var(--text);
   border-radius: 12px;
   padding: 16px 10px;
@@ -125,7 +152,7 @@ input:focus { outline: none; border-color: var(--green); }
   font-size: 1rem; cursor: pointer; opacity: .6; line-height: 1;
 }
 .chip-add {
-  border: 1.5px dashed var(--green); background: #fff; color: var(--green);
+  border: 1.5px dashed var(--green); background: var(--field-bg); color: var(--green);
   border-radius: 16px; padding: 8px 14px; font-size: .9rem; font-weight: 600; cursor: pointer;
 }
 .add-grade-form { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
@@ -133,13 +160,13 @@ input:focus { outline: none; border-color: var(--green); }
 .add-grade-form input { flex: 1; }
 
 /* ===== STEP 2 big input ===== */
-.weigh-card { background: linear-gradient(180deg, #fff, var(--green-light)); }
+.weigh-card { background: linear-gradient(180deg, var(--card), var(--green-light)); }
 .weigh-row { display: flex; gap: 10px; align-items: stretch; width: 100%; }
 /* กล่องครอบช่องกรอก + หน่วย ให้กรอบเดียวกัน อยู่ในการ์ดเสมอ */
 .big-input-wrap {
   flex: 1 1 auto; min-width: 0;
   display: flex; align-items: center;
-  background: #fff; border: 2px solid var(--green); border-radius: 14px;
+  background: var(--field-bg); border: 2px solid var(--green); border-radius: 14px;
   padding: 0 12px;
 }
 .big-input {
@@ -150,8 +177,9 @@ input:focus { outline: none; border-color: var(--green); }
 }
 .unit { flex: 0 0 auto; font-size: 1.1rem; font-weight: 700; color: var(--muted); }
 .add-weight-btn {
-  flex: 0 0 auto; width: auto; padding: 8px 18px;
-  font-size: 1.05rem; line-height: 1.25; white-space: nowrap;
+  flex: 0 0 auto; width: auto; padding: 8px 22px;
+  font-size: 1.1rem; white-space: nowrap;
+  display: flex; align-items: center; justify-content: center;
 }
 
 /* ช่องแสดงผลล่าสุด (recheck) */
@@ -202,7 +230,7 @@ input:focus { outline: none; border-color: var(--green); }
 }
 .price-table input.price:focus { outline: none; border-color: var(--green); background: var(--green-light); }
 .price-table td.money { font-weight: 700; color: var(--green-dark); white-space: nowrap; }
-.price-table tfoot td { background: var(--green-dark); color: #fff; font-weight: 800; }
+.price-table tfoot td { background: var(--deep); color: #fff; font-weight: 800; }
 .price-table tfoot td.r { text-align: right; }
 
 /* ===== STEP 5 expenses ===== */
@@ -211,7 +239,7 @@ input:focus { outline: none; border-color: var(--green); }
 /* ช่องค่าใช้จ่าย — สไตล์เดียวกับช่อง input อื่นในแอป */
 .expense-row input {
   border: 1.5px solid var(--border); border-radius: 10px; padding: 12px;
-  font-size: 1rem; background: #fff; color: var(--text);
+  font-size: 1rem; background: var(--field-bg); color: var(--text);
 }
 .expense-row input:focus { outline: none; border-color: var(--green); }
 .expense-row input.exp-name { flex: 1; min-width: 0; }
@@ -221,7 +249,7 @@ input:focus { outline: none; border-color: var(--green); }
 .expense-row .del-row { flex: none; }
 
 /* ===== summary ===== */
-.summary-card { background: var(--green-dark); color: #fff; }
+.summary-card { background: var(--deep); color: #fff; }
 .sum-line { display: flex; justify-content: space-between; padding: 6px 0; font-size: 1.05rem; }
 .sum-line.minus { color: #ffcdd2; }
 .sum-line.net { border-top: 2px solid rgba(255,255,255,.3); margin-top: 6px; padding-top: 12px; font-size: 1.4rem; font-weight: 800; }
@@ -231,8 +259,8 @@ input:focus { outline: none; border-color: var(--green); }
 .btn { flex: 1; padding: 16px; border-radius: 12px; font-size: 1.05rem; font-weight: 700; border: none; cursor: pointer; }
 .btn-sm { padding: 8px 14px; font-size: .85rem; flex: none; }
 .btn-primary { background: var(--green); color: #fff; }
-.btn-primary:active { background: var(--green-dark); }
-.btn-ghost { background: #fff; color: var(--muted); border: 1.5px solid var(--border); }
+.btn-primary:active { background: var(--deep); }
+.btn-ghost { background: var(--card); color: var(--muted); border: 1.5px solid var(--border); }
 
 /* ===== history ===== */
 .history-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
@@ -245,7 +273,7 @@ input:focus { outline: none; border-color: var(--green); }
 /* grand summary banner */
 .grand-summary { margin-bottom: 12px; }
 .grand-summary:empty { display: none; }
-.gs-banner { background: var(--green-dark); color: #fff; border-radius: 12px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+.gs-banner { background: var(--deep); color: #fff; border-radius: 12px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
 .gs-banner .gs-label { font-size: .85rem; opacity: .85; }
 .gs-banner .gs-net { font-size: 1.3rem; font-weight: 800; }
 .gs-banner .gs-sub { font-size: .78rem; opacity: .8; margin-top: 2px; }
@@ -327,7 +355,7 @@ input:focus { outline: none; border-color: var(--green); }
 
 /* ===== modal ===== */
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: flex-end; justify-content: center; z-index: 90; }
-.modal { background: #fff; width: 100%; max-width: 720px; border-radius: 18px 18px 0 0; padding: 18px; max-height: 85vh; overflow-y: auto; }
+.modal { background: var(--card); width: 100%; max-width: 720px; border-radius: 18px 18px 0 0; padding: 18px; max-height: 85vh; overflow-y: auto; }
 .modal h3 { margin: 0 0 4px; }
 .modal .close-modal { width: 100%; margin-top: 14px; padding: 14px; border: none; background: var(--green); color: #fff; border-radius: 12px; font-weight: 700; font-size: 1rem; cursor: pointer; }
 .ios-steps { padding-left: 20px; margin: 12px 0; line-height: 1.7; }

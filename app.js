@@ -4,14 +4,15 @@ const GROUP_SIZE = 5;            // ครบ 5 แถวต่อเกรด =
 const DEFAULT_GRADES = ['AB', 'C', 'ตกไซส์', 'อื่นๆ'];
 const STORE_KEY = 'durian_records';
 const DRAFT_KEY = 'durian_draft';
-const APP_VERSION = 'v16';   // fallback ถ้ายังไม่มี service worker ควบคุมหน้า
+const APP_VERSION = 'v18';   // fallback ถ้ายังไม่มี service worker ควบคุมหน้า
 
 // ===== แบนเนอร์โฆษณาร้าน =====
 // แก้ได้ตรงนี้: img = ลิงก์รูป (ถ้ามี), bg = สีพื้น (ถ้าไม่มีรูป), link = ลิงก์ปลายทางเมื่อคลิก
 const ADS = [
   { title: 'ร้านสุรเดชการเกษตร (1999)', subtitle: 'ปุ๋ย ยา อุปกรณ์การเกษตร ครบวงจร — กดเข้าเพจ', bg: 'linear-gradient(135deg,#2e7d32,#1b5e20)', img: '', link: 'https://www.facebook.com/suradetkaset' },
   { title: 'ดูสินค้า & โปรโมชั่น', subtitle: 'อัปเดตล่าสุดที่เฟซบุ๊กร้าน คลิกเลย', bg: 'linear-gradient(135deg,#1877f2,#0d5bcd)', img: '', link: 'https://www.facebook.com/suradetkaset' },
-  { title: '📞 โทรสอบถามราคา', subtitle: '065-614-7715 — กดเพื่อโทรได้เลย', bg: 'linear-gradient(135deg,#f9a825,#ef6c00)', img: '', link: 'tel:0656147715' }
+  { title: '📞 โทรสอบถามราคา', subtitle: '065-614-7715 — กดเพื่อโทรได้เลย', bg: 'linear-gradient(135deg,#f9a825,#ef6c00)', img: '', link: 'tel:0656147715' },
+  { title: '📍 แผนที่ร้าน / นำทาง', subtitle: 'กดเปิด Google Maps ไปร้านได้เลย', bg: 'linear-gradient(135deg,#00897b,#00695c)', img: '', link: 'https://maps.app.goo.gl/LKAuXkVEq8FarekbA' }
 ];
 
 // ===== Cloudflare Web Analytics =====
@@ -208,6 +209,7 @@ function addWeight(){
   const w = num(inp.value);
   if (w <= 0){ toast('กรอกน้ำหนักก่อน'); inp.focus(); return; }
   const g = state.activeGrade;
+  if (!g || !state.grades.includes(g)){ toast('กรุณาเลือกหรือเพิ่มเกรดก่อน'); return; }
   ensureGrade(g);
   state.seq = (state.seq || 0) + 1;
   state.entries[g].push({ w, time: nowTime(), seq: state.seq });
@@ -707,7 +709,7 @@ function registerSW(){ if ('serviceWorker' in navigator) navigator.serviceWorker
 
 // แสดงเวอร์ชัน service worker ที่กำลังทำงานจริง
 function showVersion(){
-  const el = $('#appFooter');
+  const el = $('#appVersion');
   if (!el) return;
   const set = v => el.textContent = 'เวอร์ชัน ' + v;
   set(APP_VERSION);                                    // แสดง fallback ไปก่อน

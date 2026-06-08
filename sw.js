@@ -1,13 +1,24 @@
 /* Service Worker — offline cache สำหรับ PWA จดตาชั่งทุเรียน */
-const CACHE = 'durian-scale-v10';
+const CACHE = 'durian-scale-v11';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
+  './fonts.css',
   './app.js',
   './manifest.json',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './fonts/Kanit-600-thai.woff2',
+  './fonts/Kanit-600-latin.woff2',
+  './fonts/Kanit-700-thai.woff2',
+  './fonts/Kanit-700-latin.woff2',
+  './fonts/Sarabun-400-thai.woff2',
+  './fonts/Sarabun-400-latin.woff2',
+  './fonts/Sarabun-600-thai.woff2',
+  './fonts/Sarabun-600-latin.woff2',
+  './fonts/Sarabun-700-thai.woff2',
+  './fonts/Sarabun-700-latin.woff2'
 ];
 
 self.addEventListener('install', (e) => {

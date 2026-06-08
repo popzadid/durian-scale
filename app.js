@@ -1,10 +1,10 @@
-/* ===== จดตาชั่งทุเรียน — flow: เลือกเกรด > กรอกน้ำหนัก > ตารางแยกเกรด > ราคา > ค่าใช้จ่าย ===== */
+/* ===== จดแล้วรวย — flow: เลือกเกรด > กรอกน้ำหนัก > ตารางแยกเกรด > ราคา > ค่าใช้จ่าย ===== */
 
 const GROUP_SIZE = 5;            // ครบ 5 แถวต่อเกรด = สรุปย่อย 1 ครั้ง
 const DEFAULT_GRADES = ['AB', 'C', 'ตกไซส์', 'อื่นๆ'];
 const STORE_KEY = 'durian_records';
 const DRAFT_KEY = 'durian_draft';
-const APP_VERSION = 'v18';   // fallback ถ้ายังไม่มี service worker ควบคุมหน้า
+const APP_VERSION = 'v19';   // fallback ถ้ายังไม่มี service worker ควบคุมหน้า
 
 // ===== แบนเนอร์โฆษณาร้าน =====
 // แก้ได้ตรงนี้: img = ลิงก์รูป (ถ้ามี), bg = สีพื้น (ถ้าไม่มีรูป), link = ลิงก์ปลายทางเมื่อคลิก
@@ -489,7 +489,7 @@ function exportCSV(){
   const blob = new Blob(['﻿'+lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href=url; a.download=`ตาชั่งทุเรียน_${nowDate()}.csv`; a.click();
+  a.href=url; a.download=`จดแล้วรวย_${nowDate()}.csv`; a.click();
   URL.revokeObjectURL(url);
   toast('ส่งออก CSV แล้ว');
 }

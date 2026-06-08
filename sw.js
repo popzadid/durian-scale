@@ -1,5 +1,5 @@
-/* Service Worker — offline cache สำหรับ PWA จดตาชั่งทุเรียน */
-const VERSION = 'v18';
+/* Service Worker — offline cache สำหรับ PWA จดแล้วรวย */
+const VERSION = 'v19';
 const CACHE = 'durian-scale-' + VERSION;
 const ASSETS = [
   './',

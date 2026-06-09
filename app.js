@@ -4,7 +4,7 @@ const GROUP_SIZE = 5;            // ครบ 5 แถวต่อเกรด =
 const DEFAULT_GRADES = ['AB', 'C', 'ตกไซส์', 'อื่นๆ'];
 const STORE_KEY = 'durian_records';
 const DRAFT_KEY = 'durian_draft';
-const APP_VERSION = 'v21';   // fallback ถ้ายังไม่มี service worker ควบคุมหน้า
+const APP_VERSION = 'v22';   // fallback ถ้ายังไม่มี service worker ควบคุมหน้า
 
 // ===== แบนเนอร์โฆษณาร้าน =====
 // แก้ได้ตรงนี้: img = ลิงก์รูป (ถ้ามี), bg = สีพื้น (ถ้าไม่มีรูป), link = ลิงก์ปลายทางเมื่อคลิก
@@ -37,6 +37,10 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
 const fmt = (n) => !n ? '0' : Number(n.toFixed(2)).toLocaleString('th-TH');
 const baht = (n) => fmt(n) + ' ฿';
+const runIdle = (fn, timeout = 1200) => {
+  if ('requestIdleCallback' in window) window.requestIdleCallback(fn, { timeout });
+  else setTimeout(fn, 0);
+};
 function nowTime(){ const d=new Date(); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
 function nowDate(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function escapeHtml(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -315,7 +319,8 @@ function saveSession(){
   state.orchard=''; $('#orchard').value='';
   resetDateTime();
   clearSession(true);
-  renderHistory();
+  updateHistoryCount();
+  if ($('#tab-history').classList.contains('active')) renderHistory();
 }
 
 /* ---------- input sync ---------- */
@@ -326,7 +331,17 @@ function syncInputs(){
 }
 
 /* ---------- draft ---------- */
-function saveDraft(){ syncInputs(); localStorage.setItem(DRAFT_KEY, JSON.stringify(state)); }
+let draftTimer = null;
+function saveDraftNow(){
+  clearTimeout(draftTimer);
+  draftTimer = null;
+  syncInputs();
+  try { localStorage.setItem(DRAFT_KEY, JSON.stringify(state)); } catch(e){}
+}
+function saveDraft(){
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(saveDraftNow, 180);
+}
 function loadDraft(){
   try {
     const d = JSON.parse(localStorage.getItem(DRAFT_KEY));
@@ -344,6 +359,10 @@ function loadDraft(){
 
 /* ---------- records ---------- */
 function loadRecords(){ try { return JSON.parse(localStorage.getItem(STORE_KEY))||[]; } catch(e){ return []; } }
+function updateHistoryCount(){
+  const count = loadRecords().length;
+  $('#historyCount').textContent = count || '';
+}
 function deleteRecord(id){
   if (!confirm('ลบรายการนี้?')) return;
   localStorage.setItem(STORE_KEY, JSON.stringify(loadRecords().filter(r=>r.id!==id)));
@@ -515,7 +534,8 @@ function init(){
   if (!state.activeGrade) state.activeGrade = state.grades[0];
 
   renderAll();
-  renderHistory();
+  updateHistoryCount();
+  if ((location.hash || '#record') === '#history') activateTab('history');
 
   // tabs (+ SPA virtual pageview สำหรับ analytics)
   $$('.tab').forEach(t=>t.addEventListener('click',()=>{
@@ -609,10 +629,18 @@ function init(){
   setupTheme();
   renderAds();
   setupAdCarousel();
-  registerSW();
   setupInstall();
-  setupAnalytics();
-  showVersion();
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') saveDraftNow();
+  });
+  window.addEventListener('pagehide', saveDraftNow);
+
+  runIdle(() => {
+    registerSW();
+    setupAnalytics();
+    showVersion();
+  });
 }
 
 // อัปเดตเงินในตารางราคา + สรุป โดยไม่หลุดโฟกัสช่องราคา
@@ -655,12 +683,16 @@ function setupAdCarousel(){
   track.addEventListener('scroll', ()=>{
     clearTimeout(st);
     st = setTimeout(()=>{ idx = Math.round(track.scrollLeft/track.clientWidth); syncDots(idx); }, 80);
-  });
+  }, { passive: true });
   $('#adDots').addEventListener('click', e=>{ const d=e.target.closest('.ad-dot'); if (d){ goTo(+d.dataset.i); restart(); } });
 
-  const restart = ()=>{ clearInterval(adTimer); adTimer = setInterval(()=>goTo(idx+1), 4000); };
-  ['touchstart','mousedown'].forEach(ev=>track.addEventListener(ev, ()=>clearInterval(adTimer)));
-  ['touchend','mouseleave'].forEach(ev=>track.addEventListener(ev, restart));
+  const restart = ()=>{
+    clearInterval(adTimer);
+    if (!document.hidden) adTimer = setInterval(()=>goTo(idx+1), 4000);
+  };
+  ['touchstart','mousedown'].forEach(ev=>track.addEventListener(ev, ()=>clearInterval(adTimer), { passive: true }));
+  ['touchend','mouseleave'].forEach(ev=>track.addEventListener(ev, restart, { passive: true }));
+  document.addEventListener('visibilitychange', () => document.hidden ? clearInterval(adTimer) : restart());
   restart();
 }
 
@@ -684,7 +716,10 @@ function setupTheme(){
   try { themePref = localStorage.getItem(THEME_KEY) || 'auto'; } catch(e){}
   applyTheme();
   // ตามระบบเมื่อยังเป็นโหมด auto (ยังไม่เคยเลื่อนสไลเดอร์เอง)
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{ if (themePref === 'auto') applyTheme(); });
+  const scheme = window.matchMedia('(prefers-color-scheme: dark)');
+  const onSchemeChange = () => { if (themePref === 'auto') applyTheme(); };
+  if (scheme.addEventListener) scheme.addEventListener('change', onSchemeChange);
+  else if (scheme.addListener) scheme.addListener(onSchemeChange);
   const tg = $('#themeToggle');
   if (tg) tg.addEventListener('change', ()=>{
     themePref = tg.checked ? 'dark' : 'light';

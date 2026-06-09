@@ -301,6 +301,10 @@ input:focus { outline: none; border-color: var(--green); }
 
 .history-list { display: flex; flex-direction: column; gap: 10px; }
 .history-item { border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+.history-item, .grade-block, .sum-group {
+  content-visibility: auto;
+  contain-intrinsic-size: 160px;
+}
 .history-item .hi-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
 .history-item .hi-orchard { font-weight: 700; font-size: 1.02rem; }
 .history-item .hi-time { font-size: .8rem; color: var(--muted); }

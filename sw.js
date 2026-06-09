@@ -1,5 +1,5 @@
 /* Service Worker — offline cache สำหรับ PWA จดแล้วรวย */
-const VERSION = 'v21';
+const VERSION = 'v22';
 const CACHE = 'durian-scale-' + VERSION;
 const ASSETS = [
   './',
@@ -10,6 +10,7 @@ const ASSETS = [
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './icons/icon-512-maskable.png',
   './fonts/Kanit-600-thai.woff2',
   './fonts/Kanit-600-latin.woff2',
   './fonts/Kanit-700-thai.woff2',
@@ -43,12 +44,15 @@ self.addEventListener('message', (e) => {
   }
 });
 
-// cache-first สำหรับไฟล์แอป, network fallback
+// cache-first เฉพาะไฟล์ในแอป, ปล่อย request ภายนอกให้ browser จัดการเอง
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+  if (url.origin !== self.location.origin) return;
   e.respondWith(
     caches.match(e.request).then(cached =>
       cached || fetch(e.request).then(res => {
+        if (!res || res.status !== 200) return res;
         const copy = res.clone();
         caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
         return res;

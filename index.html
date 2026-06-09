@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#2e7d32" />
   <title>จดแล้วรวย</title>
   <link rel="manifest" href="manifest.json" />
@@ -15,19 +17,20 @@
   <link rel="stylesheet" href="styles.css" />
   <script>
     /* ตั้งธีมก่อนวาดหน้า กันจอกระพริบ (อ่านค่าที่เลือก หรือเช็ค OS) */
-    (function(){
-      try{
+    (function () {
+      try {
         var p = localStorage.getItem('durian_theme') || 'auto';
-        var dark = p==='dark' || (p==='auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        var dark = p === 'dark' || (p === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
         document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-      }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+      } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
     })();
   </script>
 </head>
+
 <body>
   <header class="app-header">
     <div class="app-title">
-         <h1>🖋️ จดแล้วรวย</h1>
+      <h1>🖋️ จดแล้วรวย</h1>
     </div>
     <div class="header-actions">
       <label class="theme-switch" title="สลับธีม สว่าง/มืด">
@@ -80,7 +83,8 @@
 
     <!-- STEP 2: กรอกน้ำหนัก ช่องใหญ่ + ปุ่มด้านข้าง -->
     <section class="card weigh-card">
-      <div class="step-title"><span class="step-no">2</span> กรอกน้ำหนัก เกรด <span id="activeGradeName" class="active-grade">-</span></div>
+      <div class="step-title"><span class="step-no">2</span> กรอกน้ำหนัก เกรด <span id="activeGradeName"
+          class="active-grade">-</span></div>
       <div class="weigh-row">
         <div class="big-input-wrap">
           <input id="weightInput" class="big-input" inputmode="decimal" maxlength="6" placeholder="0" />
@@ -108,11 +112,19 @@
       <div class="table-wrap">
         <table class="price-table">
           <thead>
-            <tr><th>เกรด</th><th>น้ำหนัก (กก.)</th><th>ราคา/กก.</th><th>เป็นเงิน</th></tr>
+            <tr>
+              <th>เกรด</th>
+              <th>น้ำหนัก (กก.)</th>
+              <th>ราคา/กก.</th>
+              <th>เป็นเงิน</th>
+            </tr>
           </thead>
           <tbody id="priceBody"></tbody>
           <tfoot>
-            <tr><td colspan="3" class="r">รวมเป็นเงิน</td><td id="revenueTotal">0</td></tr>
+            <tr>
+              <td colspan="3" class="r">รวมเป็นเงิน</td>
+              <td id="revenueTotal">0</td>
+            </tr>
           </tfoot>
         </table>
       </div>
@@ -161,10 +173,12 @@
     </section>
   </main>
 
-  <footer class="app-footer" id="appFooter">Made with ❤️ by PPSoft <span id="appVersion">เวอร์ชัน …</span></footer>
+  <footer class="app-footer" id="appFooter">Made with ❤️ by สุรเดชการเกษตร PPSoft <span id="appVersion">เวอร์ชัน
+      …</span></footer>
 
   <div id="toast" class="toast" hidden></div>
 
   <script src="app.js"></script>
 </body>
+
 </html>

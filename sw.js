@@ -1,5 +1,5 @@
 /* Service Worker — offline cache สำหรับ PWA จดแล้วรวย */
-const VERSION = 'v23';
+const VERSION = 'v24';
 const CACHE = 'durian-scale-' + VERSION;
 const ASSETS = [
   './',
